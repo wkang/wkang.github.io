@@ -1,0 +1,21 @@
+---
+layout: default
+---
+{% for post in paginator.posts %}
+  <article class="post">
+  <h2 class="title">
+	  <a href="{{ post.url }}">{{ post.title }}</a> 
+	  <span class="date">{{ post.date | date post.date, "%d %b %Y" }}</span>
+  </h2>
+  <div class="summary"> {{ post.content | truncatewords post.content, 25, "" }}</div>
+  </article>
+{% endfor %}
+
+<nav id="pagenavi">
+  {% if paginator.previous_page %}
+    <a href="{{paginator.previous_page}}" class="prev">Prev</a>
+  {% endif %}
+  {% if paginator.next_page %}
+    <a href="{{paginator.next_page}}" class="next">Next</a>
+  {% endif %}
+</nav>
