@@ -1,7 +1,11 @@
 url: http://wkang.github.com/wkang.github.com
 title: "{ Kang Wen }"
 simple_search: http://google.com/search
-permalink: /:title/
-markdown: rdiscount
+permalink: /:categories/:title/
+markdown: kramdown
+kramdown:
+ use_coderay: true
+ coderay:
+  coderay_line_numbers:
 pygments: true
 paginate: 10
