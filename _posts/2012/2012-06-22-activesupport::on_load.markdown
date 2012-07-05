@@ -1,4 +1,3 @@
-
 ---
 title: ActiveSupport.on_load 
 date: 2012-06-22
