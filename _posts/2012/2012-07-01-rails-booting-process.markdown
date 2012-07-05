@@ -166,24 +166,24 @@ According default options __Rack::server__ will set varibles and require other l
 Here __Myapp::Application.initialize!__ will excute __Rails::Initializable.run_initializers(:default)__ call initializers define in engine.rb, application/boostrap.rb application/finisher.rb and other railties(activerecord, action_controller, action_dispatch...) with sorts. `initializer(name, opts, &blk)`, opts set as __{:before => :xxx}__ or __{:after => :xx }__ to pass so that we can specify :xxx before or after some initializer to excute.
 After initializers get sort, will be excuted by this sort: 
 
-#### #set_load_path
+*   #### #set_load_path
 Add configured load paths to ruby load paths and remove duplicates.  
 
-#### #set_autoload_paths
+*   #### #set_autoload_paths
 Add load paths to ruby to load, $LOAD_PATH, and uniq remove duplicate paths,Set the paths from which Rails will automatically load source files, and the load_once paths. *config* autoload_paths, eager_loaded_path.
 
-#### #add_routing_paths
+*   #### #add_routing_paths
 Load config/routes.rb app.routes_reloader.route_sets << routes
 
-#### #add_locales
+*   #### #add_locales
 Add config/locales to i18n #load i18n locales  ##added later, but load higher priority
 
-#### #add_view_paths
+*   #### #add_view_paths
 ActiveSupport.on_load views path
 
 ## (5)  Load config/environments/ENV.rb  
 
-#### #load_environment_config
+*   #### #load_environment_config
 
 {:lang='ruby'}  
     @_env ||= ActiveSupport::StringInquirer.new(ENV["RAILS_ENV"] || ENV["RACK_ENV"] || "development"),
@@ -191,137 +191,251 @@ ActiveSupport.on_load views path
 paths will add config/environments/xxx.rb according __Rails.env__, as __@_env__. ENV is Ruby hash-like accessor for environment variables.
 by default it will load config/development.rb 
 
-#### #load_environment_hook
+*   #### #load_environment_hook
 
-#### #load_active_support
+*   #### #load_active_support
 require "active_support/all"
 
-#### #preload_frameworks
+*   #### #preload_frameworks
 Preload all frameworks specified by the rails.config#frameworks.
 
-#### #initialize_logger
+*   #### #initialize_logger
 Initialize logger, Rails.logger || config.logger || ActiveSupport::TaggedLogging
 
-#### #initialize_cache
+*   #### #initialize_cache
 Set __Rails.cache__ to ActiveSupport::Cache.new.
 
-#### #initialize_dependency_mechanism
+*   #### #initialize_dependency_mechanism
 Sets the dependency loading mechanism.## ActiveSupport::Dependencies.mechanism = config.cache_classes ? :require : :load
 
 ## (6)  Run config.before_initialize callbacks  
 
-#### #bootstrap_hook
+*   #### #bootstrap_hook
 ActiveSupport.run_load_hooks(:before_initialize, app)
 
-### (7)  Run Railtie#initializer defined by railties, engines and application. One by one, each engine sets up its load paths, routes and runs its config/initializers/* files.  
+## (7)  Run Railtie#initializer defined by railties, engines and application. One by one, each engine sets up its load paths, routes and runs its config/initializers/* files.  
 
-#### #i18n.callbacks
+*   #### #i18n.callbacks
+add I18n.reloader(ActiveSupport::FileUpdateChecker checking locales file, it provides API for Rails to watch files and control reloading) to ActionDispatch::Reloader middleware __to_prepare!__ callback(like before filter).By default ActionDispatch::Reloader is included in the middleware stack only in the development environment.
 
-#### #active_support.initialize_whiny_nils
+*   #### #active_support.initialize_whiny_nils
+__require 'active_support/whiny_nil'__, whiny_nil extend __NilClass__ id method, when call nil.id, it will raise RunTimeError.
 
-#### #active_support.deprecation_behavior
+*   #### #active_support.deprecation_behavior
+Setup where active_support deprecation messages to print, default "development" => :log, "production"  => :notify, "test" => :stderr
 
-#### #active_support.initialize_time_zone
+*   #### #active_support.initialize_time_zone
+Setup TimeZone with config.time_zone value.
 
-#### #action_dispatch.configure
+*   #### #action_dispatch.configure
 
-#### #action_view.embed_authenticity_token_in_remote_forms
+{:lang='ruby'}
+    ActionDispatch::Http::URL.tld_length = app.config.action_dispatch.tld_length
+      # [TLD(top level domain)](http://en.wikipedia.org/wiki/Top-level_domain), default is 1
+      # ActionDispatch::Http::URL.extract_domain("www.google.com", tld_length=1)  # google.com
+      # ActionDispatch::Http::URL.extract_domain("www.google.com", tle_length=2)  #www.google.com
 
-#### #action_view.cache_asset_ids
+    ActionDispatch::Request.ignore_accept_header = app.config.action_dispatch.ignore_accept_header
+      # if request didn't set params[:format], will check ignore_accept_header will returns the accepted MIME type for the request, which is "action_dispatch.request.formats"
 
-#### #action_view.javascript_expansions
+    ActionDispatch::Response.default_charset = app.config.action_dispatch.default_charset || app.config.encoding
+      # response default charset
 
-#### #action_view.set_configs
+    ActionDispatch::ExceptionWrapper.rescue_responses.merge!(config.action_dispatch.rescue_responses)
+    ActionDispatch::ExceptionWrapper.rescue_templates.merge!(config.action_dispatch.rescue_templates)
+      # add more rescue error and templates for exception raise and show it then
 
-#### #action_view.caching
+    config.action_dispatch.always_write_cookie = Rails.env.development? if config.action_dispatch.always_write_cookie.nil?
+    ActionDispatch::Cookies::CookieJar.always_write_cookie = config.action_dispatch.always_write_cookie
+      # whether to set always for cookies, for development default is true
 
-#### #action_controller.logger
+*   #### #action_view.embed_authenticity_token_in_remote_forms
+   ActionView::Helpers::FormTagHelper.embed_authenticity_token_in_remote_forms =
+      app.config.action_view.delete(:embed_authenticity_token_in_remote_forms)
+      #By default it's true, embeded authenticity_token for the form
 
-#### #action_controller.initialize_framework_caches
+*   #### #action_view.cache_asset_ids
+   ActionView::Helpers::AssetTagHelper::AssetPaths.cache_asset_ids = false
+      # With the cache enabled, the asset tag helper methods will make fewer expensive file system calls (the default implementation checks the file system timestamp). However this prevents you from modifying any asset files while the server is running.
 
-#### #action_controller.assets_config
+*   #### #action_view.javascript_expansions [should be change name to javascript_and_stylesheet?]
 
-#### #action_controller.set_configs
+{:lang='ruby'}
+    ActionView::Helpers::AssetTagHelper.register_javascript_expansion(app.config.action_view.delete(:javascript_expansions))
+    # Register one or more javascript files to be included when symbol
+    # is passed to javascript_include_tag. This method is typically intended
+    # to be called from plugin initialization to register javascript files
+    # that the plugin installed in public/javascripts.
+    #
+    #   ActionView::Helpers::AssetTagHelper.register_javascript_expansion :monkey => ["head", "body", "tail"]
+    #
+    #   javascript_include_tag :monkey # =>
+    #     <script type="text/javascript" src="/javascripts/head.js"></script>
+    #     <script type="text/javascript" src="/javascripts/body.js"></script>
+    #     <script type="text/javascript" src="/javascripts/tail.js"></script>
+    ActionView::Helpers::AssetTagHelper.register_stylesheet_expansion(app.config.action_view.delete(:stylesheet_expansions))
+# more or less with register_javascript_expansion
 
-#### #action_controller.compile_config_methods
+*   #### #action_view.set_configs
+app.config.action_view.each {|k,v| send "#{k}=", v}, initialize config variables 
+    
+*   #### #action_view.caching
+ 
+{:lang='ruby'}
+    if app.config.action_view.cache_template_loading.nil?
+      ActionView::Resolver.caching = app.config.cache_classes
+    end
+    #cache view templates, default is true
 
-#### #active_record.initialize_timezone
+*   #### #action_controller.logger
+Set action_controller.logger to Rails.logger
 
-#### #active_record.logger
+*   #### #action_controller.initialize_framework_caches
+Set action_controller cache to default rails cache, initizlize in railtie 'initialize_cache' initializer. Default it's 
+:file_store. check active_support more details.
 
-#### #active_record.identity_map
+*   #### #action_controller.assets_config
+Set action_controller.assets_dir to 'public' dir
 
-#### #active_record.set_configs
+*   #### #action_controller.set_configs
 
-#### #active_record.initialize_database
+{:lang='ruby'}
+    javascripts_dir      ||= paths["public/javascripts"].first
+    stylesheets_dir      ||= paths["public/stylesheets"].first
+    page_cache_directory ||= paths["public"].first
+                                                               
+    ure readers methods get compiled
+    asset_path           ||= app.config.asset_path#### #action_controller.compile_config_methods
+    asset_host           ||= app.config.asset_host
+    relative_url_root    ||= app.config.relative_url_root#### #active_record.initialize_timezone
+    #set these config to action_controller as method
 
-#### #active_record.log_runtime
+*   #### #active_record.logger
+Set active_record.logger to Rails.logger
 
-#### #active_record.set_reloader_hooks
+*   #### #active_record.identity_map
+Insert __ActiveRecord::IdentityMap::Middleware__ middleware after __ActionDispatch::Callbacks__ middleware to config.middlewares, default it's nil,set up mannual
 
-#### #active_record.add_watchable_files
+*   #### #active_record.set_configs
+Delete whitelist attributes value, and
 
-#### #action_mailer.logger
+{:lang='ruby'}
+    app.config.active_record.each do |k,v|
+      send "#{k}=", v
+    end
 
-#### #action_mailer.set_configs
+*   #### #active_record.initialize_database
+Establish connection to databse through config/database.yml file
 
-#### #action_mailer.compile_config_methods
+*   #### #active_record.log_runtime
+Include ActiveRecord::Railties::ControllerRuntime, logger active_record run time
 
-#### #active_resource.set_configs
+*   #### #active_record.set_reloader_hooks
+According __config.reload_classes_only_on_change__(default is true), set up the callback __ActiveRecord::Base.clear_reloadable_connections!__ and __ActiveRecord::Base.clear_cache!__ to excuted by ActionDispatch prepare or cleanup callbacks.
 
-#### #sprockets.environment
+*   #### #active_record.add_watchable_files
+config.watchable_files.concat ["#{app.root}/db/schema.rb", "#{app.root}/db/structure.sql"]
 
-#### #setup_sass
+*   #### #action_mailer.logger
+Set active_mailer.logger to Rails.logger
 
-#### #setup_compression
+*   #### #action_mailer.set_configs
 
-#### #append_assets_path
+{:lang='ruby'}
+    javascripts_dir      ||= paths["public/javascripts"].first
+    stylesheets_dir      ||= paths["public/stylesheets"].first
+    page_cache_directory ||= paths["public"].first
+                                                               
+    ure readers methods get compiled
+    asset_path           ||= app.config.asset_path#### #action_controller.compile_config_methods
+    asset_host           ||= app.config.asset_host
+    relative_url_root    ||= app.config.relative_url_root#### #active_record.initialize_timezone
+    # set these config to action_mailer as method
+    register_interceptors(options.delete(:interceptors))
+    # Register one or more Interceptors which will be called before mail is sent.
 
-#### #prepend_helpers_path
+    register_observers(options.delete(:observers))
+    # Register one or more Observers which will be notified when mail is delivered.
+
+*   #### #action_mailer.compile_config_methods
+
+{:lang='ruby'}
+    config.compile_methods! if config.respond_to?(:compile_methods!), for now active_support configuration responsed.
+
+*   #### #active_resource.set_configs
+
+{:lang='ruby'}
+    app.config.active_resource.each do |k,v|
+      ActiveResource::Base.send "#{k}=", v
+    end
+
+*   #### #sprockets.environment
+  setup sprockets environment, logger, cache, load manifest.yml and load helpers.
+
+*   #### #setup_sass
+Override stylesheet engine to the preferred syntax  
+Set the sass cache location  
+Establish configuration defaults that are evironmental in nature  
+
+*   #### #setup_compression
+
+{:lang='ruby'}
+    app.config.sass.style = :compressed
+    app.config.assets.css_compressor = CssCompressor.new
+
+*   #### #append_assets_path
+
+{:lang='ruby'}
+    app.config.assets.paths.unshift(*paths["vendor/assets"].existent_directories)
+    app.config.assets.paths.unshift(*paths["lib/assets"].existent_directories)
+    app.config.assets.paths.unshift(*paths["app/assets"].existent_directories)
+
+*   #### #prepend_helpers_path
+app.config.helpers_paths.unshift(*paths["app/helpers"].existent)
 
 ## (9)  Custom Railtie#initializers added by railties, engines and applications are executed  
 
-#### #load_config_initializers
+*   #### #load_config_initializers
 Load all config/initializers, including other gems, plugins.
 
-#### #add_generator_templates
+*   #### #add_generator_templates
 
-#### #ensure_autoload_once_paths_as_subset
+*   #### #ensure_autoload_once_paths_as_subset
 
-#### #add_builtin_route
+*   #### #add_builtin_route
 For development ##match '/rails/info/properties' => "rails/info#properties" 
 
 ## (10) Build the middleware stack and run to_prepare callbacks  
-#### #build_middleware_stack
+*   #### #build_middleware_stack
 Include default middlewares 
 
-#### #define_main_app_helper
+*   #### #define_main_app_helper
 app.routes.define_mounted_helper(:main_app)
 
-#### #add_to_prepare_blocks
+*   #### #add_to_prepare_blocks
 ActionDispatch::Reloader.to_prepare(blk)
 
-#### #run_prepare_callbacks
+*   #### #run_prepare_callbacks
 ActionDispatch::Reloader.prepare!
 
 ## (11) Run config.before_eager_load and eager_load if cache classes is true  
 
-#### #eager_load!
+*   #### #eager_load!
 ActiveSupport.run_load_hooks(:before_eager_load, self)
 railties.all(&:eager_load!), excute eager_load! for all railties
 
 ## (12) Run config.after_initialize callbacks  
 
-#### #finisher_hook
+*   #### #finisher_hook
 ActiveSupport.run_load_hooks(:after_initialize, self)
 
-#### #set_routes_reloader_hook
+*   #### #set_routes_reloader_hook
 Set app reload just after the finisher hook to ensure routes added in the hook are still loaded.
 
-#### #set_clear_dependencies_hook
+*   #### #set_clear_dependencies_hook
 Set app reload just after the finisher hook to ensure paths added in the hook are still loaded.
 
-#### #disable_dependency_loading
+*   #### #disable_dependency_loading
 ActiveSupport::Dependencies.unhook!
 '
 Finally __Rack::Server__ pass the app to handler(webrick, thin or others) to receive request from browsers.Rails Booting done! ![](/assets/images/emotions/00.jpg)
