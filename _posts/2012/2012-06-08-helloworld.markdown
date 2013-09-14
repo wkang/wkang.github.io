@@ -7,7 +7,7 @@ categories: posts
 ---
 # Hello, it's me!
 
-{:lang='html'}
+{% highlight html %}
                            . . . .
                            ,`,`,`,`,
      . . . .               `\`\`\`\;
@@ -33,3 +33,4 @@ categories: posts
                 / /       \. \
               _/ /          \_\
              /_!/            >_\
+{% endhighlight %}

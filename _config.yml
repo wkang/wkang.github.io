@@ -1,10 +1,9 @@
-url: http://wkang.github.com
+url: http://wkang.github.io
 title: "{ Kang Wen }"
 simple_search: http://google.com/search
 permalink: /:categories/:title/
-markdown: kramdown
-kramdown:
- use_coderay: true
- coderay:
-  coderay_line_numbers:
+markdown: redcarpet
 paginate: 10
+safe: true
+lsi: false
+pygments: true

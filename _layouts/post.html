@@ -5,7 +5,7 @@ layout: default
   <h1 class="title">{{ page.title | titlecase }}</h1>
   <div class="entry-content">{{ content }}</div>
   <div class="meta">
-    <div class="date"> {{ page.date | date page.date, "%d %b %Y" }} </div>
+    <div class="date"> {{ page.date | date_to_long_string }} </div>
     <div class="tags">
       {{ page.tags | category_links }}
     </div>
